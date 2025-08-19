@@ -21,6 +21,9 @@ from pathlib import Path
 
 import pandas as pd
 
+# Ativa Copy-on-Write para reduzir cópias desnecessárias de memória (pandas 2.0+)
+pd.options.mode.copy_on_write = True
+
 
 if __name__ == "__main__":
     # Parser de argumentos (sem funções auxiliares)
@@ -66,17 +69,21 @@ if __name__ == "__main__":
     if not right_path.exists():
         raise FileNotFoundError(f"Arquivo não encontrado: {right_path}")
 
-    # Leitura dos arquivos Excel
-    # (lê sheet específico se informado)
+    # Leitura dos arquivos Excel com engine_kwargs otimizados para memória
+    read_engine_kwargs = {"read_only": True, "data_only": True}
     if args.left_sheet:
-        left_df = pd.read_excel(left_path, sheet_name=args.left_sheet)
+        left_df = pd.read_excel(
+            left_path, sheet_name=args.left_sheet, engine="openpyxl", engine_kwargs=read_engine_kwargs
+        )
     else:
-        left_df = pd.read_excel(left_path)
+        left_df = pd.read_excel(left_path, engine="openpyxl", engine_kwargs=read_engine_kwargs)
 
     if args.right_sheet:
-        right_df = pd.read_excel(right_path, sheet_name=args.right_sheet)
+        right_df = pd.read_excel(
+            right_path, sheet_name=args.right_sheet, engine="openpyxl", engine_kwargs=read_engine_kwargs
+        )
     else:
-        right_df = pd.read_excel(right_path)
+        right_df = pd.read_excel(right_path, engine="openpyxl", engine_kwargs=read_engine_kwargs)
 
     # Padroniza cabeçalhos (trim nos nomes das colunas)
     left_df.columns = [str(col).strip() for col in left_df.columns]
@@ -110,18 +117,17 @@ if __name__ == "__main__":
 
     # Summary das categorias do merge
     summary_df = (
-        merged_df["_merge"]
-        .value_counts(dropna=False)
-        .rename_axis("categoria")
-        .reset_index(name="quantidade")
+        merged_df["_merge"].value_counts(dropna=False).rename_axis("categoria").reset_index(name="quantidade")
     )
-    category_order = {"both": 0, "left_only": 1, "right_only": 2}
-    summary_df["ord"] = summary_df["categoria"].map(lambda c: category_order.get(c, 99))
-    summary_df = summary_df.sort_values(["ord", "categoria"]).drop(columns=["ord"]).reset_index(drop=True)
+    # Ordenação previsível sem coluna auxiliar
+    summary_df["categoria"] = pd.Categorical(
+        summary_df["categoria"], categories=["both", "left_only", "right_only"], ordered=True
+    )
+    summary_df = summary_df.sort_values("categoria").reset_index(drop=True)
 
     # Salva em Excel com duas abas: merge e summary
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+    with pd.ExcelWriter(output_path, engine="openpyxl", engine_kwargs={"write_only": True}) as writer:
         merged_df.to_excel(writer, sheet_name="merge", index=False)
         summary_df.to_excel(writer, sheet_name="summary", index=False)
 
