@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Jupyter/VSCode
+.ipynb_checkpoints/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Envs
+.env
+.venv/
+venv/
+env/
+
+# Outputs
+*.xlsx
+resultados/
+outputs/
