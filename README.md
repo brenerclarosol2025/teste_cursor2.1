@@ -1,3 +1,5 @@
+## 🧭 Visão Geral
+
 ## 🔗 Cruzamento de Planilhas Excel por MATRICULA (Pandas)
 
 Script de data wrangling para cruzar dois arquivos Excel com base na coluna `MATRICULA`, utilizando `pandas.merge` com `indicator=True`. O resultado é salvo em um novo arquivo Excel com duas abas: `merge` (dados completos) e `summary` (contagem de correspondências).
